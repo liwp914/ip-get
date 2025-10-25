@@ -1,0 +1,86 @@
+name: Auto Update Cloudflare IPs
+
+on:
+  schedule:
+    # 每6小时运行一次 (UTC时间)
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # 允许手动触发
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'get_ip.py'
+      - 'webdav_upload.sh'
+      - 'config.ini.example'
+
+jobs:
+  update-and-upload:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Create config.ini from example
+      run: |
+        if [ -f "config.ini.example" ] && [ ! -f "config.ini" ]; then
+          cp config.ini.example config.ini
+          echo "已从模板创建 config.ini"
+        else
+          echo "使用现有的 config.ini"
+        fi
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4 configparser
+
+    - name: Run get_ip.py with environment variables
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        CLOUDFLARE_DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}
+        CLOUDFLARE_RECORD_NAME: ${{ secrets.CLOUDFLARE_RECORD_NAME }}
+        CLOUDFLARE_RECORD_TYPE: ${{ secrets.CLOUDFLARE_RECORD_TYPE }}
+        CLOUDFLARE_TTL: ${{ secrets.CLOUDFLARE_TTL }}
+        CLOUDFLARE_PROXIED: ${{ secrets.CLOUDFLARE_PROXIED }}
+        CLOUDFLARE_MAX_RECORDS: ${{ secrets.CLOUDFLARE_MAX_RECORDS }}
+      run: python get_ip.py
+
+    - name: Make webdav_upload.sh executable
+      run: chmod +x webdav_upload.sh
+
+    - name: Run webdav_upload.sh
+      env:
+        WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+        WEBDAV_USERNAME: ${{ secrets.WEBDAV_USERNAME }}
+        WEBDAV_PASSWORD: ${{ secrets.WEBDAV_PASSWORD }}
+      run: ./webdav_upload.sh
+
+    - name: Check for changes in output directory
+      id: check_changes
+      run: |
+        if git diff --name-only HEAD | grep -q "output/"; then
+          echo "changes_detected=true" >> $GITHUB_OUTPUT
+          echo "检测到output目录有变化"
+          git status
+        else
+          echo "changes_detected=false" >> $GITHUB_OUTPUT
+          echo "output目录无变化"
+        fi
+
+    - name: Commit and push if changes exist
+      if: steps.check_changes.outputs.changes_detected == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add output/
+        git commit -m "Auto-update: Cloudflare IPs $(date -u +'%Y-%m-%d %H:%M:%S')"
+        git push
