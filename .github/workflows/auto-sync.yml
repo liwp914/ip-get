@@ -25,13 +25,10 @@ jobs:
         
     - name: Run DNS updater
       env:
-        CF1: ${{ vars.CF1 }}
-        CF2: ${{ vars.CF2 }}
         CLOUDFLARE_ENABLE: ${{ vars.CLOUDFLARE_ENABLE }}
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
         CLOUDFLARE_DOMAIN: ${{ vars.CLOUDFLARE_DOMAIN }}
-        INCLUDE_LINES: ${{ vars.INCLUDE_LINES }}
       run: python cfdns_ip.py
       
     - name: Upload output files
