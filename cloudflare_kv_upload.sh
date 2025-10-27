@@ -4,6 +4,7 @@
 CF_DOMAIN="${CFKV_DOMAIN}"
 CF_TOKEN="${CFKV_TOKEN}"
 FOLDER_PATH="${FOLDER_PATH:-output}"  # 默认路径
+FILE_PATTERN="${FILE_PATTERN:-*.txt}"  # 新增：文件名模式，默认所有txt文件
 
 # 检查必要的环境变量
 if [ -z "$CFKV_DOMAIN" ] || [ -z "$CFKV_TOKEN" ]; then
@@ -40,12 +41,19 @@ urlencode() {
 }
 
 echo "开始上传文件从文件夹: $FOLDER_PATH"
+echo "文件模式: $FILE_PATTERN"
 
-# 遍历文件夹中所有匹配 *_marked.txt 的文件
-for FILENAME in "${FOLDER_PATH}"/*.txt; do
-    # 检查文件是否存在
-    if [ ! -f "$FILENAME" ]; then
+# 遍历文件夹中匹配指定模式的文件
+for FILENAME in "${FOLDER_PATH}"/${FILE_PATTERN}; do
+    # 检查文件是否存在（使用 -e 而不是 -f，因为可能匹配到目录）
+    if [ ! -e "$FILENAME" ]; then
         echo "文件不存在: $FILENAME"
+        continue
+    fi
+    
+    # 如果是目录则跳过
+    if [ -d "$FILENAME" ]; then
+        echo "跳过目录: $FILENAME"
         continue
     fi
 
@@ -53,7 +61,7 @@ for FILENAME in "${FOLDER_PATH}"/*.txt; do
     FILENAME_ONLY=$(basename "$FILENAME")
 
     # 读取文件的前10行内容并进行Base64编码
-    BASE64_TEXT=$(head -n 10 "$FILENAME" | base64 -w 0)
+    BASE64_TEXT=$(head -n 40 "$FILENAME" | base64 -w 0)
 
     # URL编码文件名
     FILENAME_URL=$(urlencode "$FILENAME_ONLY")
@@ -67,7 +75,7 @@ for FILENAME in "${FOLDER_PATH}"/*.txt; do
     if curl -s -f "$URL" -o /dev/null; then
         echo "✓ 文件 $FILENAME 上传成功"
     else
-        echo "✗ 文件 $FILENAME 上传失败"
+        echo "✗✗ 文件 $FILENAME 上传失败"
     fi
 done
 
