@@ -1,15 +1,9 @@
 #!/bin/bash
 
-# WebDAV配置 - 使用环境变量增强安全性
+# WebDAV配置
 WEBDAV_URL="${WEBDAV_URL}"
 USERNAME="${WEBDAV_USERNAME}"
 PASSWORD="${WEBDAV_PASSWORD}"
-
-# 设置脚本错误时退出
-set -e
-
-echo "开始WebDAV上传过程..."
-echo "WebDAV URL: $WEBDAV_URL"
 
 # 检查output目录是否存在
 if [ ! -d "output" ]; then
@@ -32,7 +26,6 @@ fi
 total_files=${#files[@]}
 success_count=0
 fail_count=0
-failed_files=()
 
 # 遍历上传文件
 for file in "${files[@]}"; do
@@ -52,22 +45,20 @@ for file in "${files[@]}"; do
     # 结果判断
     case $http_code in
         201|204)
-            echo "✓ 上传成功: $file"
+            echo "√ 上传成功"
             ((success_count++))
             ;;
         409)
-            echo "⚠ 冲突错误（文件可能已存在）: $file"
+            echo "× 冲突错误（文件可能已存在）"
             ((fail_count++))
-            failed_files+=("$file")
             ;;
         401)
-            echo "✗ 认证失败，请检查账号密码"
+            echo "× 认证失败，请检查账号密码"
             exit 2
             ;;
         *)
-            echo "✗ 上传失败 (HTTP $http_code): $file"
+            echo "× 上传失败 (HTTP $http_code)"
             ((fail_count++))
-            failed_files+=("$file")
             ;;
     esac
 done
@@ -78,16 +69,7 @@ cd ..
 # 输出统计结果
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━"
-echo "上传统计:"
 echo "文件总数 : $total_files"
 echo "成功上传 : $success_count"
 echo "失败数量 : $fail_count"
-
-if [ $fail_count -gt 0 ]; then
-    echo "失败的文件:"
-    printf '%s\n' "${failed_files[@]}"
-    exit 1
-fi
-
 echo "━━━━━━━━━━━━━━━━━━━━━"
-echo "WebDAV上传完成 ✓"
