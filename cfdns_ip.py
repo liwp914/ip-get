@@ -1,5 +1,4 @@
-# 创建修改后的Python文件内容
-modified_py_content = '''import requests
+import requests
 import re
 import os
 import time
@@ -43,7 +42,7 @@ def extract_ips_from_content(content, include_lines=None):
     
     # 使用正则表达式匹配IP地址和线路
     # 格式: 序号 线路 IP地址 丢包 延迟 速度 带宽 Colo 时间
-    pattern = r'(\\d+)\\s+([^\\s]+)\\s+([\\d\\.:a-fA-F]+)\\s+[^\\s]+\\s+[^\\s]+\\s+[^\\s]+\\s+[^\\s]+\\s+[^\\s]+\\s+[^\\s]+'
+    pattern = r'(\d+)\s+([^\s]+)\s+([\d\.:a-fA-F]+)\s+[^\s]+\s+[^\s]+\s+[^\s]+\s+[^\s]+\s+[^\s]+\s+[^\s]+'
     matches = re.finditer(pattern, text_content)
     
     for match in matches:
@@ -62,12 +61,12 @@ def save_to_file(data, filename):
     """将数据保存到文件"""
     with open(filename, 'w', encoding='utf-8') as f:
         for item in data:
-            f.write(f"{item}\\n")
+            f.write(f"{item}\n")
     print(f"已保存 {len(data)} 个IP地址到 {filename}")
 
 def process_link(url, output_dir, link_name, user_agent=None, include_lines=None):
     """处理单个链接"""
-    print(f"\\n处理链接: {url}")
+    print(f"\n处理链接: {url}")
     
     # 获取网页内容
     content = get_webpage_content(url, user_agent)
@@ -147,7 +146,7 @@ def parse_line_config(config_str):
         return None
     
     # 支持逗号、空格、分号分隔
-    lines = re.split(r'[,;\\s]+', config_str)
+    lines = re.split(r'[,;\s]+', config_str)
     # 去除空字符串
     lines = [line.strip() for line in lines if line.strip()]
     
@@ -222,7 +221,7 @@ def update_cloudflare_dns(ips, cf_config):
         print("Cloudflare DNS更新未启用")
         return
     
-    print("\\n开始更新Cloudflare DNS记录...")
+    print("\n开始更新Cloudflare DNS记录...")
     
     # 提取API配置
     api_token = cf_config.get('api_token')
@@ -318,7 +317,7 @@ def update_cloudflare_dns(ips, cf_config):
         subdomain = line_mapping.get(line_type, line_type.lower())
         record_name = f"{base_record_name}-{subdomain}"
         
-        print(f"\\n处理线路类型: {line_type} -> {record_name}.{domain}")
+        print(f"\n处理线路类型: {line_type} -> {record_name}.{domain}")
         
         # 限制每个线路类型的记录数量
         ip_list = ip_list[:max_records_per_line]
@@ -435,19 +434,12 @@ def main():
     # 合并并去重所有IP地址
     if all_ip_lists:
         merged_ips = merge_and_deduplicate_files(all_ip_lists, output_dir)
-        print(f"\\n合并后共 {len(merged_ips)} 个唯一IP地址")
+        print(f"\n合并后共 {len(merged_ips)} 个唯一IP地址")
         
         # 更新Cloudflare DNS记录
         update_cloudflare_dns(merged_ips, cf_config)
     else:
-        print("\\n未找到任何IP地址")
+        print("\n未找到任何IP地址")
 
 if __name__ == "__main__":
     main()
-'''.replace('\\\\', '\\')  # 修复转义字符
-
-# 保存修改后的 cfdns_ip.py 文件
-with open('cfdns_ip_modified.py', 'w', encoding='utf-8') as f:
-    f.write(modified_py_content)
-
-print("已创建修改后的 cfdns_ip_modified.py 文件")
