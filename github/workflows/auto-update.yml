@@ -1,0 +1,90 @@
+name: Cloudflare IP Auto Sync
+
+on:
+  schedule:
+    # 每6小时运行一次
+    - cron: '0 */6 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+env:
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  get-ip:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Create .env file
+      run: |
+        cat > .env << EOF
+        # User Agent
+        USER_AGENT=${{ secrets.USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }}
+        
+        # 线路类型配置
+        INCLUDE_LINES=${{ secrets.INCLUDE_LINES || '移动,电信,联通,多线' }}
+        
+        # 解析器配置
+        ENABLE_JSON_PARSER=true
+        ENABLE_HTML_PARSER=true
+        ENABLE_TEXT_PARSER=true
+        TIMEOUT=30
+        RETRY_TIMES=3
+        
+        # 链接配置
+        CF1=${{ secrets.CF1 }}
+        CF2=${{ secrets.CF2 }}
+        CF3=${{ secrets.CF3 || '' }}
+        
+        # Cloudflare配置
+        CLOUDFLARE_ENABLE=${{ secrets.CLOUDFLARE_ENABLE || 'false' }}
+        CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ZONE_ID=${{ secrets.CLOUDFLARE_ZONE_ID }}
+        CLOUDFLARE_DOMAIN=${{ secrets.CLOUDFLARE_DOMAIN }}
+        CLOUDFLARE_RECORD_NAME=${{ secrets.CLOUDFLARE_RECORD_NAME || 'cf' }}
+        CLOUDFLARE_RECORD_TYPE=${{ secrets.CLOUDFLARE_RECORD_TYPE || 'A' }}
+        CLOUDFLARE_TTL=${{ secrets.CLOUDFLARE_TTL || '1' }}
+        CLOUDFLARE_PROXIED=${{ secrets.CLOUDFLARE_PROXIED || 'false' }}
+        CLOUDFLARE_MAX_RECORDS_PER_LINE=${{ secrets.CLOUDFLARE_MAX_RECORDS_PER_LINE || '5' }}
+        EOF
+        
+    - name: Run get_ip.py
+      run: python get_ip.py
+      
+    - name: Make shell scripts executable
+      run: |
+        chmod +x cloudflare_kv_upload.sh
+        chmod +x webdav_upload.sh
+        
+    - name: Run Cloudflare KV upload
+      env:
+        CFKV_DOMAIN: ${{ secrets.CFKV_DOMAIN }}
+        CFKV_TOKEN: ${{ secrets.CFKV_TOKEN }}
+        FOLDER_PATH: output
+      run: ./cloudflare_kv_upload.sh
+      
+    - name: Run WebDAV upload
+      env:
+        WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+        WEBDAV_USERNAME: ${{ secrets.WEBDAV_USERNAME }}
+        WEBDAV_PASSWORD: ${{ secrets.WEBDAV_PASSWORD }}
+      run: ./webdav_upload.sh
+      
+    - name: Commit and push output files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add output/
+        git commit -m "Auto-update: Cloudflare IP files $(date)" || exit 0
+        git push
