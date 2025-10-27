@@ -5,7 +5,7 @@ on:
     branches:
       - main  # 触发分支
   schedule:
-    - cron: '0 */6 * * *'  # 每6小时运行一次
+    - cron: '0 */6 * * *'  # 每6小时运行一次（修改为每6小时）
 
 jobs:
   update-ip:
@@ -25,12 +25,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Load environment variables
-        run: |
-          # 加载 .env 文件中的环境变量
-          export $(cat .env | xargs)
-
       - name: Run cfdns_ip.py
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_DOMAIN: ${{ secrets.CLOUDFLARE_DOMAIN }}
         run: python cfdns_ip.py
 
       - name: Run webdav_upload.sh
