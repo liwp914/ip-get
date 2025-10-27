@@ -36,7 +36,8 @@ CF2=https://stock.hostmonit.com/CloudFlareYes
 
 # 线路类型配置（可选，默认提取所有线路）INCLUDE_LINES=电信,联通,移动,多线,IPV6
 
-# Cloudflare DNS 更新配置（可选）CLOUDFLARE_ENABLE=false
+# Cloudflare DNS 更新配置（可选）
+CLOUDFLARE_ENABLE=false
 CLOUDFLARE_RECORD_NAME=cf
 CLOUDFLARE_TTL=1
 CLOUDFLARE_PROXIED=false
