@@ -5,7 +5,7 @@ on:
     branches:
       - main  # 触发分支
   schedule:
-    - cron: '0 0 * * *'  # 每天午夜运行
+    - cron: '0 */6 * * *'  # 每6小时运行一次
 
 jobs:
   update-ip:
@@ -24,6 +24,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Load environment variables
+        run: |
+          # 加载 .env 文件中的环境变量
+          export $(cat .env | xargs)
 
       - name: Run cfdns_ip.py
         run: python cfdns_ip.py
