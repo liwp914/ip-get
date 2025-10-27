@@ -43,6 +43,7 @@ jobs:
         env:
           CFKV_DOMAIN: ${{ secrets.CFKV_DOMAIN }}
           CFKV_TOKEN: ${{ secrets.CFKV_TOKEN }}
+          FILE_PATTERN: "all_cf_ip.txt"
         run: bash cloudflare_kv_upload.sh
 
       - name: Commit and push generated files
